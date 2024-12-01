@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Danh sách khoa</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="navbar">
+        <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('admin.add_khoa_view') }}">Thêm khoa</a>
+        <a href="{{ url_for('auth.logout') }}">Đăng xuất</a>
+    </div>
+
+    <h1>Danh sách khoa</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Mã khoa</th>
+                <th>Tên khoa</th>
+                <th>Chức năng</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for khoa in khoas %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ khoa[0] }}</td> <!-- maKhoa -->
+                <td>{{ khoa[1] }}</td> <!-- TenKhoa -->
+                <td>
+                    <a href="{{ url_for('admin.edit_khoa', khoa_id=khoa[0]) }}">Sửa</a>
+                    <a href="{{ url_for('admin.delete_khoa_view', khoa_id=khoa[0]) }}" onclick="return confirm('Bạn có chắc chắn muốn xóa khoa này không?')">Xóa</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

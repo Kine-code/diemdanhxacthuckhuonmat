@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Danh sách sinh viên</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="navbar">
+        <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('admin.add_student_view') }}">Thêm sinh viên</a>
+        <a href="{{ url_for('auth.logout') }}">Đăng xuất</a>
+    </div>
+
+    <h1 style="margin-top: 10px;">Danh sách sinh viên</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Mã sinh viên</th>
+                <th>Họ và tên</th>
+                <th>Lớp</th>
+                <th>Mã Khoa</th>
+                <th>Mã Lớp</th>
+                <th>Tên Lớp</th>
+                <th>Mã Điểm Danh</th>
+                <th>Chức năng</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ loop.index }}</td> <!-- Số thứ tự -->
+                <td>{{ student[0] }}</td> <!-- MaSV -->
+                <td>{{ student[2] }} {{ student[3] }}</td> <!-- Ho và Ten -->
+                <td>{{ student[1] }}</td> <!-- Lop -->
+                <td>{{ student[4] }}</td> <!-- maKhoa -->
+                <td>{{ student[5] }}</td> <!-- maLop -->
+                <td>{{ student[6] }}</td> <!-- TenLop -->
+                <td>{{ student[7] }}</td> <!-- MaDD -->
+                <td>
+                    <a href="{{ url_for('admin.edit_student', student_id=student[0]) }}">Sửa</a>
+                    <a href="{{ url_for('admin.delete_student_view', student_id=student[0]) }}" onclick="return confirm('Bạn có chắc chắn muốn xóa sinh viên này không?')">Xóa</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

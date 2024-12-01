@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Thêm giảng viên</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='cssform.css') }}">
+</head>
+<body>
+    <h1>Thêm giảng viên</h1>
+    <form method="POST">
+        <label for="ma_gv">Mã giảng viên:</label><br>
+        <input type="text" id="ma_gv" name="ma_gv" required><br><br>
+
+        <label for="ho">Họ:</label><br>
+        <input type="text" id="ho" name="ho"><br><br>
+
+        <label for="ten">Tên:</label><br>
+        <input type="text" id="ten" name="ten"><br><br>
+
+        <label for="username">Username:</label><br>
+        <input type="text" id="username" name="username" required><br><br>
+
+        <label for="password">Password:</label><br>
+        <input type="password" id="password" name="password" required><br><br>
+
+        <label for="is_admin">Admin:</label>
+        <input type="checkbox" id="is_admin" name="is_admin"><br><br>
+
+        <button type="submit">Thêm</button>
+    </form>
+</body>
+</html>

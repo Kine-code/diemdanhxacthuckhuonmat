@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sửa môn học</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='cssform.css') }}">
+</head>
+<body>
+    <h1>Sửa môn học</h1>
+    <form method="POST">
+        <label for="ten_mon">Tên môn học:</label><br>
+        <input type="text" id="ten_mon" name="ten_mon" value="{{ subject[1] }}" required><br><br>
+
+        <label for="so_tc">Số tín chỉ:</label><br>
+        <input type="number" id="so_tc" name="so_tc" value="{{ subject[2] }}" required><br><br>
+
+        <label for="ngay_bd">Ngày bắt đầu:</label><br>
+        <input type="date" id="ngay_bd" name="ngay_bd" value="{{ subject[3] }}" required><br><br>
+
+        <button type="submit">Cập nhật</button>
+    </form>
+</body>
+</html>

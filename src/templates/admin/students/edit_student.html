@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sửa sinh viên</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='cssform.css') }}">
+</head>
+<body>
+    <h1>Sửa sinh viên</h1>
+    <form method="POST">
+        <label for="ho">Họ:</label><br>
+        <input type="text" id="ho" name="ho" value="{{ student[2] }}" required><br><br>
+
+        <label for="ten">Tên:</label><br>
+        <input type="text" id="ten" name="ten" value="{{ student[3] }}" required><br><br>
+
+        <label for="lop">Lớp:</label><br>
+        <input type="text" id="lop" name="lop" value="{{ student[1] }}" required><br><br>
+
+        <label for="ma_khoa">Mã Khoa:</label><br>
+        <input type="text" id="ma_khoa" name="ma_khoa" value="{{ student[4] }}" required><br><br>
+
+        <label for="ma_lop">Mã Lớp:</label><br>
+        <input type="text" id="ma_lop" name="ma_lop" value="{{ student[5] }}" required><br><br>
+
+        <label for="ten_lop">Tên Lớp:</label><br>
+        <input type="text" id="ten_lop" name="ten_lop" value="{{ student[6] }}" required><br><br>
+
+        <label for="ma_dd">Mã Địa điểm:</label><br>
+        <input type="text" id="ma_dd" name="ma_dd" value="{{ student[7] }}" required><br><br>
+
+        <button type="submit">Cập nhật</button>
+    </form>
+</body>
+</html>

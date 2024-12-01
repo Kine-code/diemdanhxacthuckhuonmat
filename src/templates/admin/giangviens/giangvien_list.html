@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Danh sách giảng viên</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="navbar">
+        <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('admin.add_giangvien_view') }}">Thêm giảng viên</a>
+        <a href="{{ url_for('auth.logout') }}">Đăng xuất</a>
+    </div>
+
+    <h1>Danh sách giảng viên</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Mã giảng viên</th>
+                <th>Tên</th>
+                <th>Username</th>
+                <th>Quyền</th>
+                <th>Chức năng</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for gv in giangviens %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ gv[0] }}</td> <!-- MaGV -->
+                <td>{{ gv[2] }} {{ gv[3] }}</td> <!-- Ho và Ten -->
+                <td>{{ gv[1] }}</td> <!-- Username -->
+                <td>{{ 'Admin' if gv[4] else 'Giảng viên' }}</td> <!-- isAdmin -->
+                <td>
+                    <a href="{{ url_for('admin.edit_giangvien', ma_gv=gv[0]) }}">Sửa</a>
+                    <a href="{{ url_for('admin.delete_giangvien_view', ma_gv=gv[0]) }}" onclick="return confirm('Bạn có chắc chắn muốn xóa giảng viên này không?')">Xóa</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

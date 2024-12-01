@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Danh sách môn học</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="navbar">
+        <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('admin.add_subject_view') }}">Thêm môn học</a>
+        <a href="{{ url_for('auth.logout') }}">Đăng xuất</a>
+    </div>
+
+    <h1>Danh sách môn học</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Mã môn học</th>
+                <th>Tên môn học</th>
+                <th>Số tín chỉ</th>
+                <th>Ngày bắt đầu</th>
+                <th>Chức năng</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for subject in subjects %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ subject[0] }}</td> <!-- MaMH -->
+                <td>{{ subject[1] }}</td> <!-- TenMH -->
+                <td>{{ subject[2] }}</td> <!-- SoTC -->
+                <td>{{ subject[3] }}</td> <!-- NgayBD -->
+                <td>
+                    <a href="{{ url_for('admin.edit_subject', subject_id=subject[0]) }}">Sửa</a>
+                    <a href="{{ url_for('admin.delete_subject_view', subject_id=subject[0]) }}" onclick="return confirm('Bạn có chắc chắn muốn xóa môn học này không?')">Xóa</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

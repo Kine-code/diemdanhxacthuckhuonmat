@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sửa khoa</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='cssform.css') }}">
+</head>
+<body>
+    <h1>Sửa khoa</h1>
+    <form method="POST">
+        <label for="ten_khoa">Tên khoa:</label><br>
+        <input type="text" id="ten_khoa" name="ten_khoa" value="{{ khoa[1] }}" required><br><br>
+
+        <button type="submit">Cập nhật</button>
+    </form>
+</body>
+</html>
