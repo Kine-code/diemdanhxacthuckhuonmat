@@ -2,6 +2,7 @@ from database.connect import get_db_connection
 import base64
 from datetime import datetime
 import face_recognition
+import os
 # login
 def fetch_user_by_username(username):
     conn = get_db_connection()
@@ -282,7 +283,7 @@ def save_attendance_record(student_id, image_url):
     cursor.close()
     conn.close()
 
-    
+
 # Hàm lưu ảnh điểm danh và trả về đường dẫn
 def save_attendance_image(photo, student_id):
     try:
@@ -457,7 +458,7 @@ def save_student_and_image(ma_sv, ho, ten, lop, ma_khoa, image_data):
         f.write(image_data)
     
     # Kết nối tới cơ sở dữ liệu và lưu thông tin sinh viên và ảnh
-    conn = sqlite3.connect('database.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     # Lưu thông tin sinh viên
