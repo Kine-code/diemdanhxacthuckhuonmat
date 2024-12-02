@@ -7,6 +7,7 @@ import base64
 from werkzeug.utils import secure_filename
 from database.access import save_attendance_record
 from PIL import Image
+import io
 
 app = Flask(__name__)
 
@@ -32,33 +33,40 @@ def allowed_file(filename):
 
 @app.route('/upload_image', methods=['POST'])
 def upload_image():
-    file = request.files['file']
-    # Lấy dữ liệu ảnh từ base64
+    # Lấy dữ liệu ảnh từ Base64
     image_data = request.form['captured_image']
-
-    # Lấy phần dữ liệu base64 sau "data:image/png;base64,"
+    
+    # Tách phần dữ liệu Base64 sau "data:image/png;base64,"
     image_data = image_data.split(",")[1]
     
-    # Giải mã base64
+    # Giải mã Base64
     image = base64.b64decode(image_data)
-    img = Image.open(file)
+    
+    # Mở ảnh từ dữ liệu giải mã Base64
+    img = Image.open(io.BytesIO(image))
     img = img.resize((int(img.width * 0.5), int(img.height * 0.5)))
+    
     # Tạo tên file ngẫu nhiên cho ảnh
     filename = secure_filename("captured_image.png")
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-
+    
+    # Kiểm tra xem thư mục có tồn tại không, nếu không thì tạo mới
+    if not os.path.exists(app.config['UPLOAD_FOLDER']):
+        os.makedirs(app.config['UPLOAD_FOLDER'])
+    
     # Lưu ảnh vào thư mục static/images
     with open(filepath, 'wb') as f:
         f.write(image)
-
+    
     # Lấy mã sinh viên từ form (hoặc có thể là từ request)
     student_id = request.form['student_id']
-
+    
     # Lưu tên ảnh vào cơ sở dữ liệu
     save_attendance_record(student_id, f"/static/images/{filename}")
-
+    
     # Trả lại URL của ảnh để hiển thị
     return jsonify({"image_url": f"/static/images/{filename}"})
+
 
 if __name__ == '__main__':
     app.run(debug=True)

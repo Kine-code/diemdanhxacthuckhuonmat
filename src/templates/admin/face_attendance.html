@@ -117,13 +117,16 @@
                     <!-- Ảnh chụp được -->
                     <input type="hidden" id="captured-image-input" name="captured_image" value="{{ image_url }}">
                     <img id="captured-image" src="" alt="Ảnh điểm danh chưa có">
-                    <input type="submit" value="Lưu và Huấn luyện">
+                    <input type="submit" value="Lưu và Huấn luyện" onclick="show">
                 </form>
             </div>
         </div>
     </div>
 
     <script>
+        function show() {
+            alert("Thực hành thêm ảnh khuôn mặt thành công ");
+        }
         // Mở camera
         function startCamera() {
             const video = document.getElementById('video');
