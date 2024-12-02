@@ -1,6 +1,7 @@
 from database.connect import get_db_connection
 import base64
 from datetime import datetime
+import face_recognition
 # login
 def fetch_user_by_username(username):
     conn = get_db_connection()
@@ -236,10 +237,31 @@ def delete_giang_vien(ma_gv):
     conn.close()
 
 # Lấy danh sách sinh viên
-def get_students():
-    query = "SELECT MaSV FROM SinhVien"
-    result = get_db_connection().execute(query)
-    return [row for row in result]
+def get_student_by_face(face_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = """
+        SELECT MaSV, Ho, Ten, Lop, TenLop, maKhoa 
+        FROM SinhVien 
+        WHERE MaSV = ?
+    """
+    cursor.execute(query, (face_id,))
+    student = cursor.fetchone()
+    conn.close()
+    return student
+
+def add_attendance(ma_dd, ma_sv, trang_thai, hinh_anh):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Lưu thông tin vào bảng DiemDanhSinhVien
+    query = """
+        INSERT INTO DiemDanhSinhVien (MaDD, MaSV, TrangThai, ThoiGianDiemDanh, HinhAnhDiemDanh)
+        VALUES (?, ?, ?, GETDATE(), ?)
+    """
+    cursor.execute(query, (ma_dd, ma_sv, trang_thai, hinh_anh))
+    conn.commit()
+    conn.close()
 
 # Ghi điểm danh sinh viên
 def record_attendance(ma_sv, ma_mh, ngay, trang_thai):
@@ -254,51 +276,37 @@ def record_attendance(ma_sv, ma_mh, ngay, trang_thai):
 
 # Hàm lưu ảnh điểm danh và trả về đường dẫn
 def save_attendance_image(photo, student_id):
-    """
-    Lưu ảnh điểm danh vào thư mục và trả về đường dẫn ảnh
-    :param photo: Dữ liệu ảnh điểm danh (base64)
-    :param student_id: Mã sinh viên
-    :return: Đường dẫn đến ảnh đã lưu
-    """
-    # Chuyển ảnh từ base64 thành file ảnh
-    image_data = base64.b64decode(photo.split(',')[1])
-    file_name = f"{student_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
-    image_path = f"static/images/attendance/{file_name}"
+    try:
+        image_data = base64.b64decode(photo.split(',')[1])
+        file_name = f"{student_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
+        image_path = f"static/images/attendance/{file_name}"
+        with open(image_path, "wb") as f:
+            f.write(image_data)
 
-    # Lưu ảnh vào thư mục
-    with open(image_path, "wb") as f:
-        f.write(image_data)
+        return image_path
+    except Exception as e:
+        print(f"Error saving image: {e}")
+    return None
 
-    return image_path
 
 # Hàm điểm danh sinh viên
 def mark_attendance(student_id, attendance_id, photo):
-    """
-    Lưu thông tin điểm danh của sinh viên vào bảng DiemDanhSinhVien
-    :param student_id: Mã sinh viên
-    :param attendance_id: Mã điểm danh
-    :param photo: Hình ảnh điểm danh (base64)
-    """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Lưu ảnh điểm danh và lấy đường dẫn ảnh
-    image_path = save_attendance_image(photo, student_id)
-
-    # Thời gian điểm danh
-    timestamp = datetime.now()
-
-    # Trang thái điểm danh, có thể là 'Có mặt', 'Vắng mặt', 'Muộn'
-    status = 'Có mặt'  # Ví dụ mặc định là có mặt
-
-    # Lưu điểm danh vào bảng DiemDanhSinhVien
-    query = """
-    INSERT INTO DiemDanhSinhVien (MaDD, MaSV, TrangThai, ThoiGianDiemDanh, HinhAnhDiemDanh)
-    VALUES (?, ?, ?, ?, ?)
-    """
-    cursor.execute(query, (attendance_id, student_id, status, timestamp, image_path))
-    conn.commit()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            image_path = save_attendance_image(photo, student_id)
+            timestamp = datetime.now()
+            status = 'Có mặt'  # Default status
+            query = """
+            INSERT INTO DiemDanhSinhVien (MaDD, MaSV, TrangThai, ThoiGianDiemDanh, HinhAnhDiemDanh)
+            VALUES (?, ?, ?, ?, ?)
+            """
+            cursor.execute(query, (attendance_id, student_id, status, timestamp, image_path))
+            conn.commit()
+    except Exception as e:
+        print(f"Error marking attendance: {e}")
+    finally:
+        conn.close()
 
 # Hàm lấy thông tin điểm danh của sinh viên
 def get_attendance(student_id, attendance_id):
@@ -330,27 +338,32 @@ def get_attendance(student_id, attendance_id):
 
 
 # Tìm sinh viên bằng nhận diện khuôn mặt
-def find_student_by_face(face_image):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # Mã này sẽ so sánh ảnh khuôn mặt với dữ liệu trong cơ sở dữ liệu
-    # Chú ý rằng bạn cần phải lưu trữ dữ liệu khuôn mặt đã được mã hóa ở dạng base64 trong cơ sở dữ liệu
-    query = "SELECT MaSV, Ho, Ten FROM SinhVien WHERE MaSV IN (SELECT MaSV FROM FaceRecognition WHERE FaceData = ?)"
-    cursor.execute(query, (face_image,))
-    student = cursor.fetchone()
-    
-    cursor.close()
-    conn.close()
-    
-    if student:
-        return {
-            'MaSV': student[0],
-            'Ho': student[1],
-            'Ten': student[2],
-        }
+def find_student_by_face(face_encoding):
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            query = "SELECT Images.MaSV, SinhVien.Ho, SinhVien.Ten, Images.LinkIMG FROM Images JOIN SinhVien ON Images.MaSV = SinhVien.MaSV"
+            cursor.execute(query)
+            students = cursor.fetchall()
+
+            for student in students:
+                face_image = face_recognition.load_image_file(student[3])
+                known_encoding = face_recognition.face_encodings(face_image)[0]
+
+                matches = face_recognition.compare_faces([known_encoding], face_encoding)
+                if True in matches:
+                    return {
+                        'MaSV': student[0],
+                        'Ho': student[1],
+                        'Ten': student[2]
+                    }
+    except Exception as e:
+        print(f"Error finding student by face: {e}")
+    finally:
+        conn.close()
     return None
 
+# Lấy thông tin chi tiết sinh viên từ Mã SV
 def get_student_info(student_id):
     conn = get_db_connection()
     cursor = conn.cursor()

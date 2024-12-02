@@ -1,12 +1,21 @@
 from flask import Blueprint,  render_template, request, redirect, url_for, flash,jsonify
-from database.access import add_student,fetch_all_students, fetch_student_by_id, update_student,delete_student,fetch_all_subjects,fetch_subject_by_id,update_subject,delete_subject,add_subject,delete_khoa,fetch_all_khoas,fetch_khoa_by_id,update_khoa,add_khoa,delete_giang_vien,fetch_all_giang_viens,fetch_giang_vien_by_id,update_giang_vien,add_giang_vien,get_student_count, get_teacher_count,get_subject_count, mark_attendance
-import cv2
+from database.access import add_student,fetch_all_students, fetch_student_by_id, update_student,delete_student,fetch_all_subjects,fetch_subject_by_id,update_subject,delete_subject,add_subject,delete_khoa,fetch_all_khoas,fetch_khoa_by_id,update_khoa,add_khoa,delete_giang_vien,fetch_all_giang_viens,fetch_giang_vien_by_id,update_giang_vien,add_giang_vien,get_student_count, get_teacher_count,get_subject_count, mark_attendance,find_student_by_face,get_student_info,add_attendance,save_attendance_image
+from io import BytesIO
+from PIL import Image
+import numpy as np
+import face_recognition
 import base64
-from datetime import datetime
+import os
+import datetime
+
+from database.connect import get_db_connection
+
 # Định nghĩa blueprint cho Admin và Giảng viên
 admin_bp = Blueprint('admin', __name__)
 lecturer_bp = Blueprint('lecturer', __name__)
 
+
+IMAGE_SAVE_PATH = 'static/attendance_images/'
 
 # Admin Routes
 @admin_bp.route('/dashboard')
@@ -247,29 +256,79 @@ def statistics():
     return render_template('admin/statistics.html')
 
 
+
+@admin_bp.route('/admin/index')
+def index():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT 
+            sv.MaSV, 
+            sv.Ho, 
+            sv.Ten, 
+            sv.TenLop AS Lop, 
+            k.TenKhoa AS Khoa
+        FROM SinhVien sv
+        JOIN Khoa k ON sv.maKhoa = k.maKhoa
+    """)
+    students = cursor.fetchall()
+    conn.close()
+    return render_template('admin/index.html', students=students)
+
+# Điểm danh bằng nhận diện khuôn mặt
 @admin_bp.route('/admin/face_attendance', methods=['POST', 'GET'])
 def face_attendance():
-    if request.method == 'POST':
-        # Lấy dữ liệu ảnh từ form (base64)
-        photo = request.form['photo']
-        student_id = request.form['student_id']  # Giả sử mã sinh viên đã được nhận diện từ khuôn mặt
-        attendance_id = 'DD001'  # Mã điểm danh, có thể lấy từ hệ thống
-
-        # Lưu thông tin điểm danh vào cơ sở dữ liệu
-        mark_attendance(student_id, attendance_id, photo)
+    try:
+        ma_sv = request.form['MaSV']
+        hinh_anh_base64 = request.form['HinhAnhDiemDanh']
         
-        return redirect(url_for('attendance_success'))
-
+        # Chuyển đổi ảnh từ Base64
+        image_data = base64.b64decode(hinh_anh_base64.split(',')[1])
+        image_path = os.path.join(IMAGE_SAVE_PATH, f"{ma_sv}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.jpg")
+        with open(image_path, 'wb') as img_file:
+            img_file.write(image_data)
+        
+        # Nhận diện khuôn mặt
+        image = face_recognition.load_image_file(image_path)
+        encodings = face_recognition.face_encodings(image)
+        
+        if encodings:
+            # Lưu thông tin điểm danh nếu có khuôn mặt
+            add_attendance(ma_sv, "Có mặt", image_path)
+            flash('Điểm danh thành công!', 'success')
+        else:
+            flash('Không nhận diện được khuôn mặt!', 'danger')
+    except Exception as e:
+        flash(f'Có lỗi xảy ra: {str(e)}', 'danger')
     return render_template('admin/face_attendance.html')
+@admin_bp.route('/api/get_student_info', methods=['GET', 'POST'])
+def get_student_info():
+    conn = get_db_connection()
+    ma_sv = request.args.get('MaSV')  # Lấy tham số MaSV từ URL
+    if not ma_sv:
+        return jsonify({"error": "MaSV không được để trống"}), 400
 
-@admin_bp.route('/admin/attendance_success')
-def attendance_success():
-    return "Điểm danh thành công!"
+    cursor = conn.cursor()
+    query = """
+        SELECT 
+            sv.MaSV, sv.Ho + ' ' + sv.Ten AS TenSinhVien, 
+            dds.ThoiGianDiemDanh, dds.HinhAnhDiemDanh
+        FROM DiemDanhSinhVien dds
+        JOIN SinhVien sv ON dds.MaSV = sv.MaSV
+        WHERE sv.MaSV = ?
+    """
+    cursor.execute(query, ma_sv)
+    result = cursor.fetchone()
 
-@admin_bp.route('/admin/attendance_fail')
-def attendance_fail():
-    return "Không nhận diện được khuôn mặt!"
-
+    if result:
+        return jsonify({
+            "MaSV": result[0],
+            "TenSinhVien": result[1],
+            "ThoiGianDiemDanh": result[2].strftime('%Y-%m-%d %H:%M:%S'),
+            "HinhAnhDiemDanh": result[3]
+        })
+    else:
+        return jsonify({"error": "Không tìm thấy thông tin sinh viên"}), 404
 # Lecturer Routes
 
 @lecturer_bp.route('/student_attendance')
