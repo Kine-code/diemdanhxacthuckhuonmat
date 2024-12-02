@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hệ thống điểm danh khuôn mặt</title>
     <style>
-       body {
+        /* Thêm các style của bạn ở đây */
+        body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
@@ -44,7 +45,7 @@
             border-radius: 5px;
             margin-top: 10px;
         }
-        button {
+        button, input[type="submit"] {
             display: block;
             width: 100%;
             margin-top: 10px;
@@ -56,17 +57,10 @@
             font-size: 16px;
             cursor: pointer;
         }
-        button:hover {
+        button:hover, input[type="submit"]:hover {
             background-color: #45a049;
         }
-        .info-box p {
-            margin: 5px 0;
-        }
-        .info-box strong {
-            display: inline-block;
-            width: 120px;
-        }
-        .form-group input {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 8px;
             margin: 10px 0;
@@ -74,6 +68,7 @@
             border-radius: 5px;
         }
     </style>
+
 </head>
 <body>
     <div class="container">
@@ -91,26 +86,44 @@
             <!-- Thông tin sinh viên và huấn luyện -->
             <div class="column">
                 <h3>Nhập thông tin sinh viên</h3>
-                <div class="info-box">
+                <!-- Form xử lý lưu thông tin -->
+                <form action="{{ url_for('admin.face_attendance') }}" method="POST" enctype="multipart/form-data">
                     <div class="form-group">
                         <label for="student-id">Mã Sinh Viên:</label>
-                        <input type="text" id="student-id" placeholder="Nhập mã sinh viên">
+                        <input type="text" id="student-id" name="student_id" placeholder="Nhập mã sinh viên" required>
                     </div>
                     <div class="form-group">
                         <label for="student-name">Tên Sinh Viên:</label>
-                        <input type="text" id="student-name" placeholder="Nhập tên sinh viên">
+                        <input type="text" id="student-name" name="student_name" placeholder="Nhập tên sinh viên" required>
                     </div>
-                    <button onclick="saveAndTrain()">Lưu và Huấn luyện</button>
-                </div>
-                <h3>Ảnh điểm danh</h3>
-                <img id="captured-image" src="" alt="Ảnh điểm danh chưa có">
+                    <!-- Thêm trường Khoa -->
+                    <div class="form-group">
+                        <label for="student-khoa">Khoa:</label>
+                        <select id="student-khoa" name="student_khoa" required>
+                            {% for khoa in khoa %}
+                            <option value="{{ khoa[0] }}">{{ khoa[1] }}</option>
+                        {% endfor %}
+                        </select>
+                    </div>
+                    <!-- Thêm trường Môn học -->
+                    <div class="form-group">
+                        <label for="student-monhoc">Môn Học:</label>
+                        <select id="student-monhoc" name="student_monhoc" required>
+                            {% for subjects  in subjects %}
+                            <option value="{{ subjects[0] }}">{{ subjects[1] }}</option>
+                        {% endfor %}
+                        </select>
+                    </div>
+                    <!-- Ảnh chụp được -->
+                    <input type="hidden" id="captured-image-input" name="captured_image" value="{{ image_url }}">
+                    <img id="captured-image" src="" alt="Ảnh điểm danh chưa có">
+                    <input type="submit" value="Lưu và Huấn luyện">
+                </form>
             </div>
         </div>
     </div>
 
     <script>
-        let currentImageData = null;
-
         // Mở camera
         function startCamera() {
             const video = document.getElementById('video');
@@ -125,62 +138,39 @@
         }
 
         // Chụp ảnh từ camera
-        function captureImage() {
-            const video = document.getElementById('video');
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
 
-            // Đặt kích thước của canvas bằng kích thước của video
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+    // Chụp ảnh từ camera
+    // Hàm chụp ảnh
+function captureImage() {
+    const video = document.getElementById('video');
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
 
-            // Vẽ ảnh video lên canvas
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // Đặt kích thước của canvas bằng kích thước video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-            // Lưu ảnh chụp được vào image src
-            const imageSrc = canvas.toDataURL('image/png');
-            document.getElementById('captured-image').src = imageSrc;
+    // Vẽ video lên canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // Lưu lại ảnh để huấn luyện sau
-            currentImageData = imageSrc;
-        }
+    // Chuyển canvas thành ảnh Base64
+    const imageSrc = canvas.toDataURL('image/jpeg', 0.8);  // Giảm chất lượng ảnh xuống 80%
 
-        // Lưu ảnh và huấn luyện
-        function saveAndTrain() {
-    const studentId = document.getElementById('student-id').value;
-    const studentName = document.getElementById('student-name').value;
-
-    if (!studentId || !studentName || !currentImageData) {
-        alert("Vui lòng nhập đầy đủ thông tin và chụp ảnh.");
+    // Kiểm tra kích thước ảnh Base64
+    const maxSize = 5 * 1024 * 1024;  // Giới hạn 5MB
+    if (imageSrc.length > maxSize) {
+        alert('Ảnh quá lớn. Vui lòng chụp ảnh có kích thước nhỏ hơn.');
         return;
     }
 
-    // Tạo dữ liệu để gửi lên server
-    const formData = new FormData();
-    formData.append('student-id', studentId);
-    formData.append('student-name', studentName);
-    formData.append('image', currentImageData);
+    // Hiển thị ảnh chụp được
+    document.getElementById('captured-image').src = imageSrc;
 
-    // Gửi ảnh và thông tin sinh viên lên server để lưu vào thư mục images
-    fetch('/save-image', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log(data); // Kiểm tra phản hồi từ server
-        if (data.message) {
-            alert("Ảnh đã được lưu và huấn luyện thành công!");
-            // Chuyển hướng tới trang điểm danh xác thực khuôn mặt
-            window.location.href = "/danh-sach-diem-danh"; // Đổi "/danh-sach-diem-danh" thành URL của trang danh sách điểm danh của bạn
-        } else {
-            alert("Lỗi khi lưu ảnh: " + data.error);
-        }
-    })
-    .catch(error => {
-        console.error("Lỗi khi lưu ảnh:", error);
-    });
+    // Gửi ảnh Base64 vào input ẩn
+    document.getElementById('captured-image-input').value = imageSrc;
 }
-    </script>
+
+</script>
+
 </body>
 </html>

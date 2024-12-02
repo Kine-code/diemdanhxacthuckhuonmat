@@ -1,165 +1,146 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Điểm danh xác thực khuôn mặt</title>
+    <title>Thêm Sinh Viên và Ảnh Khuôn Mặt</title>
     <style>
+        /* Style cho giao diện */
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f8f9fa;
-            color: #343a40;
+            background-color: #f4f4f9;
         }
-
-        h1 {
-            margin: 0;
-            padding: 20px;
-            text-align: center;
-            background: linear-gradient(90deg, #007bff, #0056b3);
-            color: #ffffff;
-            text-transform: uppercase;
-            border-radius: 8px 8px 0 0;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
         .container {
-            max-width: 600px;
-            margin: 40px auto;
-            background: #ffffff;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
         }
-
-        form {
-            padding: 20px 30px;
+        h1 {
+            text-align: center;
+            color: #333;
         }
-
         .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .form-group input, button, select {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .camera-container {
+            text-align: center;
             margin-bottom: 20px;
         }
-
-        label {
-            font-weight: bold;
-            display: block;
-            margin-bottom: 8px;
-            color: #495057;
-        }
-
-        input[type="text"],
-        input[type="file"] {
+        video, img {
             width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            box-sizing: border-box;
-            background-color: #f8f9fa;
-            color: #495057;
-        }
-
-        input[type="text"]:focus,
-        input[type="file"]:focus {
-            outline: none;
-            border-color: #007bff;
-            box-shadow: 0 0 4px rgba(0, 123, 255, 0.5);
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #007bff;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            font-weight: bold;
-            color: #ffffff;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: all 0.3s ease-in-out;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        #result {
-            text-align: center;
-            font-size: 16px;
-            color: #28a745;
-            margin: 20px;
-        }
-
-        #result p {
-            margin: 0;
-        }
-
-        .notice {
-            text-align: center;
-            font-size: 14px;
-            color: #dc3545;
-            margin-top: 10px;
+            max-height: 300px;
+            border-radius: 8px;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Điểm danh sinh viên</h1>
-        <form id="attendanceForm" enctype="multipart/form-data">
-            <div class="form-group">
-                <label for="studentId">Mã sinh viên:</label>
-                <input type="text" id="studentId" name="student_id" placeholder="Nhập mã sinh viên" required>
+        <h1>Thêm Sinh Viên và Ảnh Khuôn Mặt</h1>
+        <!-- Form thêm sinh viên và ảnh khuôn mặt -->
+        <form action="{{ url_for('admin.add_student_face') }}"  method="POST" enctype="multipart/form-data">
+            <div class="camera-container">
+                <video id="video" autoplay muted></video>
+                <button type="button" onclick="startCamera()">Bật Camera</button>
+                <button type="button" onclick="captureImage()">Chụp Ảnh</button>
+                <img id="captured-image" src="" alt="Ảnh đã chụp sẽ hiển thị tại đây">
+                <input type="hidden" id="captured-image-input" name="captured_image">
             </div>
-            <div class="form-group">
-                <label for="attendancePhoto">Tải ảnh khuôn mặt:</label>
-                <input type="file" id="attendancePhoto" name="attendance_photo" accept="image/*" required>
-            </div>
-            <button type="submit">Điểm danh</button>
-        </form>
 
-        <div id="result"></div>
+            <div class="form-group">
+                <label for="ma_sv">Mã Sinh Viên:</label>
+                <input type="text" id="ma_sv" name="ma_sv" placeholder="Nhập mã sinh viên" required>
+            </div>
+            <div class="form-group">
+                <label for="ho">Họ:</label>
+                <input type="text" id="ho" name="ho" placeholder="Nhập họ" required>
+            </div>
+            <div class="form-group">
+                <label for="ten">Tên:</label>
+                <input type="text" id="ten" name="ten" placeholder="Nhập tên" required>
+            </div>
+            <div class="form-group">
+                <label for="lop">Lớp:</label>
+                <input type="text" id="lop" name="lop" placeholder="Nhập lớp" required>
+            </div>
+            <div class="form-group">
+                <label for="ma_khoa">Mã Khoa:</label>
+                <input type="text" id="ma_khoa" name="ma_khoa" placeholder="Nhập mã khoa" required>
+            </div>
+            <button type="submit">Lưu Sinh Viên</button>
+        </form>
     </div>
 
     <script>
-        const form = document.getElementById("attendanceForm");
-        const resultDiv = document.getElementById("result");
-
-        form.addEventListener("submit", function(event) {
-            event.preventDefault(); // Ngừng việc submit form mặc định
-
-            const studentId = document.getElementById("studentId").value;
-            const file = document.getElementById("attendancePhoto").files[0];
-
-            if (!studentId || !file) {
-                resultDiv.innerHTML = "<p class='notice'>Vui lòng nhập mã sinh viên và tải ảnh khuôn mặt lên.</p>";
-                return;
-            }
-
-            // Tạo FormData để gửi lên server
-            const formData = new FormData();
-            formData.append("student_id", studentId);
-            formData.append("attendance_photo", file);
-
-            // Gửi yêu cầu tới server
-            fetch("/add-attendance", {
-                method: "POST",
-                body: formData
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        resultDiv.innerHTML = `<p class='notice'>Lỗi: ${data.error}</p>`;
-                    } else {
-                        resultDiv.innerHTML = `<p>${data.message}</p>`;
-                    }
+        // Hàm mở camera
+        function startCamera() {
+            const video = document.getElementById('video');
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
                 })
                 .catch(error => {
-                    resultDiv.innerHTML = `<p class='notice'>Lỗi: ${error.message}</p>`;
+                    alert("Không thể truy cập camera. Vui lòng kiểm tra lại.");
+                    console.error("Lỗi Camera:", error);
                 });
-        });
+        }
+
+        // Hàm chụp ảnh
+        function captureImage() {
+            const video = document.getElementById('video');
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+
+            // Đặt kích thước của canvas bằng kích thước video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Vẽ video lên canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Chuyển canvas thành ảnh Base64
+            const imageSrc = canvas.toDataURL('image/png');
+            document.getElementById('captured-image').src = imageSrc;
+
+            // Gửi ảnh Base64 vào input ẩn
+            document.getElementById('captured-image-input').value = imageSrc;
+        }
+        document.getElementById('image').addEventListener('change', function() {
+        const file = this.files[0];
+        const maxSize = 18 * 1024 * 1024;  // 5MB
+
+        if (file.size > maxSize) {
+            alert('Ảnh quá lớn. Vui lòng chọn ảnh có dung lượng nhỏ hơn 5MB');
+            this.value = '';  // Reset file input
+        }
+    });
     </script>
 </body>
 </html>

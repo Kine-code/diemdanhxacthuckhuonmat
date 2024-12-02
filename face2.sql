@@ -95,6 +95,9 @@ INSERT INTO SinhVien (MaSV, Lop, Ho, Ten, maKhoa, maLop, TenLop, MaDD) VALUES
 ('SV003', 'DTVT1', 'Lê', 'Cường', 'K003', 'L003', 'Lớp 3', 'DD003'),
 ('SV004', 'QTKD1', 'Phạm', 'Dương', 'K004', 'L004', 'Lớp 4', 'DD004'),
 ('SV005', 'Luat1', 'Hoàng', 'Duy', 'K005', 'L005', 'Lớp 5', 'DD005');
+INSERT INTO SinhVien (MaSV, Lop, Ho, Ten, maKhoa, maLop, TenLop, MaDD) 
+VALUES 
+('SV006', 'CNTT1', 'Công', 'Kiên', 'K001', 'L001', 'Lớp 1', 'DD001');
 
 -- Dữ liệu mẫu cho bảng GiangVien
 INSERT INTO GiangVien (MaGV, Username, Password, Ho, Ten, isAdmin) VALUES
@@ -134,3 +137,18 @@ VALUES
 ('DD001', 'SV001', 'Có mặt', '2024-09-01 08:00:00', 'images/sv001.jpg'),
 ('DD001', 'SV002', 'Vắng mặt', '2024-09-01 08:00:00', 'images/sv002.jpg'),
 ('DD001', 'SV003', 'Muộn', '2024-09-01 08:10:00', 'images/sv003.jpg');
+
+INSERT INTO Images (LinkIMG, MaSV) 
+VALUES 
+('attendance_images/sv006.jpg', 'SV006');
+
+IF NOT EXISTS (SELECT 1 FROM DiemDanh WHERE MaDD = 'DD001')
+BEGIN
+    INSERT INTO DiemDanh (MaDD, MaGV, MaMH, MaLop, NgayDiemDanh)
+    VALUES ('DD001', 'GV001', 'MH001', 'L001', '2024-09-01');  -- Tạo buổi điểm danh nếu chưa có
+END
+
+INSERT INTO DiemDanhSinhVien (MaDD, MaSV, TrangThai, ThoiGianDiemDanh, HinhAnhDiemDanh) 
+VALUES 
+('DD001', 'SV006', 'Có mặt', '2024-09-01 08:00:00', 'attendance_images/sv006.jpg');
+ select * from DiemDanhSinhVien

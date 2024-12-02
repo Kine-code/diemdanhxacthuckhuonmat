@@ -1,5 +1,6 @@
+import io
 from flask import Blueprint,  render_template, request, redirect, url_for, flash,jsonify
-from database.access import add_student,fetch_all_students, fetch_student_by_id, update_student,delete_student,fetch_all_subjects,fetch_subject_by_id,update_subject,delete_subject,add_subject,delete_khoa,fetch_all_khoas,fetch_khoa_by_id,update_khoa,add_khoa,delete_giang_vien,fetch_all_giang_viens,fetch_giang_vien_by_id,update_giang_vien,add_giang_vien,get_student_count, get_teacher_count,get_subject_count, mark_attendance,find_student_by_face,get_student_info,add_attendance,save_attendance_image
+from database.access import add_student,fetch_all_students, fetch_student_by_id, update_student,delete_student,fetch_all_subjects,fetch_subject_by_id,update_subject,delete_subject,add_subject,delete_khoa,fetch_all_khoas,fetch_khoa_by_id,update_khoa,add_khoa,delete_giang_vien,fetch_all_giang_viens,fetch_giang_vien_by_id,update_giang_vien,add_giang_vien,get_student_count, get_teacher_count,get_subject_count, mark_attendance,find_student_by_face,get_student_info,add_attendance,save_attendance_image,save_student_and_image
 from io import BytesIO
 from PIL import Image
 import numpy as np
@@ -7,7 +8,7 @@ import face_recognition
 import base64
 import os
 import datetime
-
+from werkzeug.utils import secure_filename
 from database.connect import get_db_connection
 
 # Định nghĩa blueprint cho Admin và Giảng viên
@@ -15,7 +16,10 @@ admin_bp = Blueprint('admin', __name__)
 lecturer_bp = Blueprint('lecturer', __name__)
 
 
-IMAGE_SAVE_PATH = 'static/attendance_images/'
+UPLOAD_FOLDER = 'static/images'
+def allowed_file(filename):
+    allowed_extensions = ['png', 'jpg', 'jpeg', 'gif']
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
 # Admin Routes
 @admin_bp.route('/dashboard')
@@ -37,8 +41,8 @@ def student_list():
 
 @admin_bp.route('/admin/add_sinhvien', methods=['GET', 'POST'])
 def add_student_view():
-    khoa_list = fetch_all_khoas()  # Fetch danh sách Khoa
-    monhoc_list = fetch_all_subjects()  # Fetch danh sách Môn học
+    khoa = fetch_all_khoas()  # Fetch danh sách Khoa
+    subjects = fetch_all_subjects()  # Fetch danh sách Môn học
     
     if request.method == 'POST':
         ma_sv = request.form['ma_sv']
@@ -58,17 +62,9 @@ def add_student_view():
             flash(f'Có lỗi xảy ra: {str(e)}', 'danger')
 
     # Trả về danh sách Môn học theo Khoa, cũng như các dữ liệu cần thiết
-    monhoc_json = []
-    for mh in monhoc_list:
-        monhoc_json.append({
-            'MaMH': mh[0],
-            'TenMH': mh[1],
-            'maKhoa': mh[2]  # maKhoa là khóa ngoại của Môn học
-        })
-    
     return render_template('admin/students/add_student.html', 
-                           khoa_list=khoa_list, 
-                           monhoc_json=monhoc_json)
+                           khoa=khoa, 
+                           subjects=subjects)
 @admin_bp.route('/admin/edit_student/<student_id>', methods=['GET', 'POST'])
 def edit_student(student_id):
     student = fetch_student_by_id(student_id)
@@ -278,29 +274,48 @@ def index():
 # Điểm danh bằng nhận diện khuôn mặt
 @admin_bp.route('/admin/face_attendance', methods=['POST', 'GET'])
 def face_attendance():
-    try:
-        ma_sv = request.form['MaSV']
-        hinh_anh_base64 = request.form['HinhAnhDiemDanh']
-        
-        # Chuyển đổi ảnh từ Base64
-        image_data = base64.b64decode(hinh_anh_base64.split(',')[1])
-        image_path = os.path.join(IMAGE_SAVE_PATH, f"{ma_sv}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.jpg")
-        with open(image_path, 'wb') as img_file:
-            img_file.write(image_data)
-        
-        # Nhận diện khuôn mặt
-        image = face_recognition.load_image_file(image_path)
-        encodings = face_recognition.face_encodings(image)
-        
-        if encodings:
-            # Lưu thông tin điểm danh nếu có khuôn mặt
-            add_attendance(ma_sv, "Có mặt", image_path)
-            flash('Điểm danh thành công!', 'success')
-        else:
-            flash('Không nhận diện được khuôn mặt!', 'danger')
-    except Exception as e:
-        flash(f'Có lỗi xảy ra: {str(e)}', 'danger')
-    return render_template('admin/face_attendance.html')
+    khoa = fetch_all_khoas()  # Hàm lấy danh sách khoa từ cơ sở dữ liệu
+    subjects= fetch_all_subjects()  # Hàm lấy danh sách môn học từ cơ sở dữ liệu
+    
+    if request.method == 'POST':
+        ma_sv = request.form['student_id']
+        ma_khoa = request.form['student_khoa']
+        ma_monhoc = request.form['student_monhoc']
+        hinh_anh_base64 = request.form['captured_image']
+
+        try:
+            
+            # Chuyển đổi ảnh từ Base64
+            image_data = base64.b64decode(hinh_anh_base64.split(',')[1])
+            image = resize_image(image_data)
+
+            image_path = os.path.join(UPLOAD_FOLDER, f"{ma_sv}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.jpg")
+            with open(image_path, 'wb') as img_file:
+                img_file.write(image_data)
+            
+            # Nhận diện khuôn mặt
+            image = face_recognition.load_image_file(image_path)
+            encodings = face_recognition.face_encodings(image)
+            
+            if encodings:
+                # Lưu thông tin điểm danh vào cơ sở dữ liệu nếu có khuôn mặt
+                add_attendance(ma_sv, ma_khoa, ma_monhoc, "Có mặt", image_path)
+                flash('Điểm danh thành công!', 'success')
+            else:
+                flash('Không nhận diện được khuôn mặt!', 'danger')
+        except Exception as e:
+            flash(f'Có lỗi xảy ra: {str(e)}', 'danger')
+    
+    # Truyền khoa_list và monhoc_list dưới dạng JSON
+    return render_template('admin/face_attendance.html', khoa=khoa, subjects=subjects)
+
+
+def resize_image(image_data):
+    # Mở ảnh từ dữ liệu Base64
+    image = Image.open(io.BytesIO(image_data))
+    # Giảm kích thước ảnh (thí dụ, giảm xuống 50% kích thước ban đầu)
+    image = image.resize((int(image.width * 0.5), int(image.height * 0.5)))
+    return image
 @admin_bp.route('/api/get_student_info', methods=['GET', 'POST'])
 def get_student_info():
     conn = get_db_connection()
@@ -329,6 +344,26 @@ def get_student_info():
         })
     else:
         return jsonify({"error": "Không tìm thấy thông tin sinh viên"}), 404
+    
+
+@admin_bp.route('/admin/save-image', methods=['POST'])
+def save_image():
+    student_id = request.form.get('student_id')
+    student_name = request.form.get('student_name')
+    image_file = request.files.get('image')  # File ảnh
+
+    if not student_id or not student_name or not image_file:
+        return jsonify({'message': 'Lỗi: Dữ liệu không hợp lệ'}), 400
+
+    # Lưu ảnh vào thư mục
+    image_path = os.path.join(os.config['UPLOAD_FOLDER'], image_file.filename)
+    image_file.save(image_path)
+
+    # Xử lý thêm tại đây (như lưu database)
+    print(f"Đã lưu ảnh tại: {image_path}")
+
+    return jsonify({'message': 'success', 'image_path': image_path})
+
 # Lecturer Routes
 
 @lecturer_bp.route('/student_attendance')

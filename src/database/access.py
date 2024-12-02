@@ -250,16 +250,16 @@ def get_student_by_face(face_id):
     conn.close()
     return student
 
-def add_attendance(ma_dd, ma_sv, trang_thai, hinh_anh):
+def add_attendance(ma_sv, ma_khoa, ma_monhoc, trang_thai, hinh_anh):
     conn = get_db_connection()
     cursor = conn.cursor()
 
     # Lưu thông tin vào bảng DiemDanhSinhVien
     query = """
-        INSERT INTO DiemDanhSinhVien (MaDD, MaSV, TrangThai, ThoiGianDiemDanh, HinhAnhDiemDanh)
-        VALUES (?, ?, ?, GETDATE(), ?)
+        INSERT INTO DiemDanhSinhVien (MaSV, MaKhoa, MaMonHoc, TrangThai, ThoiGianDiemDanh, HinhAnhDiemDanh)
+        VALUES (?, ?, ?, ?, GETDATE(), ?)
     """
-    cursor.execute(query, (ma_dd, ma_sv, trang_thai, hinh_anh))
+    cursor.execute(query, (ma_sv, ma_khoa, ma_monhoc, trang_thai, hinh_anh))
     conn.commit()
     conn.close()
 
@@ -273,7 +273,16 @@ def record_attendance(ma_sv, ma_mh, ngay, trang_thai):
     get_db_connection().commit()
     return True
 
+def save_attendance_record(student_id, image_url):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = '''INSERT INTO DiemDanhSinhVien (MaSV, HinhAnhDiemDanh) VALUES (?, ?)'''
+    cursor.execute(query, (student_id, image_url))
+    conn.commit()
+    cursor.close()
+    conn.close()
 
+    
 # Hàm lưu ảnh điểm danh và trả về đường dẫn
 def save_attendance_image(photo, student_id):
     try:
@@ -420,7 +429,51 @@ def get_subject_count():
     conn.close()
     return count
 
+def save_to_database(student_id, student_name, image_path):
 
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Lệnh INSERT dữ liệu
+    cursor.execute("""
+        INSERT INTO DiemDanhSinhVien (MaDD, MaSV, TrangThai, ThoiGianDiemDanh, HinhAnhDiemDanh)
+        VALUES (?, ?, ?, ?, ?)
+    """, ('DD001', student_id, 'Đã điểm danh', datetime.now(), image_path))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print("Lưu dữ liệu vào database thành công!")
+
+# Hàm lưu ảnh khuôn mặt vào cơ sở dữ liệu
+def save_student_and_image(ma_sv, ho, ten, lop, ma_khoa, image_data):
+    # Lưu ảnh vào thư mục (nếu muốn lưu dưới dạng tệp)
+    image_data = image_data.split(',')[1]  # Lấy phần ảnh từ Base64
+    image_data = base64.b64decode(image_data)
+    
+    # Lưu ảnh vào tệp (có thể lưu vào thư mục Images)
+    image_filename = f"{ma_sv}_face.png"
+    with open(os.path.join('static/images', image_filename), 'wb') as f:
+        f.write(image_data)
+    
+    # Kết nối tới cơ sở dữ liệu và lưu thông tin sinh viên và ảnh
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    # Lưu thông tin sinh viên
+    cursor.execute('''
+        INSERT INTO SinhVien (MaSV, Ho, Ten, Lop, maKhoa)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (ma_sv, ho, ten, lop, ma_khoa))
+
+    # Lưu ảnh khuôn mặt
+    cursor.execute('''
+        INSERT INTO Images (LinkIMG, MaSV)
+        VALUES (?, ?)
+    ''', (f'static/images/{image_filename}', ma_sv))
+    
+    conn.commit()
+    conn.close()
 # # Lấy thống kê điểm danh
 # def get_attendance_statistics():
 #     conn = get_db_connection()
